@@ -1,65 +1,59 @@
-#include <stdio.h>
-#include <stdlib.h>
-#define BUFFER 4
-
-int buffer[BUFFER];
-int iN = 0;
-int out = 0;
-int count=0;
-void producer()
+#include<stdio.h>
+#include<semaphore.h>
+#include<pthread.h>
+#include<time.h>
+sem_t mutex,full,empty;
+int buffer[5],get=0,item=0,gitem,put=0,pro[20],con[20],n;
+void *producer(void *arg)
 {
-  int next_produced=count;
-  while (count==BUFFER); // do nothing
-    buffer[iN] = next_produced;
-    iN = (iN + 1) % BUFFER;
-    count=count+1;
-    printf("Produced item %d\n\n",count);
-  
+     sem_wait(&empty);
+     sem_wait(&mutex);
+     buffer[put%n]=item;
+     item++;
+     printf("producer%d produces %d item buffered[%d]:%d\n",(*(int*)arg),buffer[put%n],put%n,item);
+     put++;
+     sem_post(&mutex);
+     sem_post(&full);
+     sleep(1);
 }
-void consumer()
+void *consumer(void *arg)
 {
-  int next_consumed=count;
-    while (count==0); // do nothing
-      next_consumed = buffer[out];
-      out = (out + 1) % BUFFER;
-      printf("Consumed item %d\n\n",count);    
-      count=count-1;  
+
+      sem_wait(&full);
+      sem_wait(&mutex);
+      gitem=buffer[get%n];
+      printf("consumer%d consumes %d item buffered[%d]:%d\n",(*(int *)arg),gitem,get%n,gitem);
+      get++;
+      sem_post(&mutex);
+      sem_post(&empty);
+      sleep(2);
+    
 }
-
-int main()
+void main()
 {
-    int n,num,i;
-  
-    while(1) {
-  
-    printf("Press 1 for Producer \tPress 2 for Consumer \tPress 0 for Exit \n");
-        scanf("%d", &n);
-
-        switch (n) {
-        case 1: if (count < 4){
-                  producer();
-        }
-            else 
-                printf("Buffer is full!\n\n");
-            break;
-  
-        case 2:if(count > 0 )
-                consumer();
-
-            else 
-                printf("Buffer is empty!\n\n");
-            break;
-  
-        case 0:
-            exit(0);
-            break;
-
-        case 3:
-          for(i=0;i<count;i++){
-            printf("%d",buffer[i]);
-          }
-          break;
-        }
-        
+    int p,c,j,k;
+    pthread_t a[10],b[10];
+    sem_init(&mutex,0,1);
+    sem_init(&full,0,0);
+    printf("Enter the size of buffer=");
+    scanf("%d",&n);
+    sem_init(&empty,0,n);
+    printf("\nEnter the no. of producers=");
+    scanf("%d",&p);
+    printf("\nEnter the no. of consumers=");
+    scanf("%d",&c);
+    for(j=0;j<p;j++)
+    {
+        pro[j]=j;
+        pthread_create(&a[j],NULL,producer,&pro[j]);
     }
+    for(k=0;k<c;k++)
+    {
+        con[k]=k;
+        pthread_create(&b[k],NULL,consumer,&con[k]);
+    }
+    for(j=0;j<p;j++)
+    pthread_join(a[j],NULL);
+    for(k=0;k<c;k++)
+    pthread_join(b[k],NULL);
 }
