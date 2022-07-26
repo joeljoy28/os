@@ -1,5 +1,5 @@
-#include
-
+#include<stdio.h>
+#include<stdlib.h>
 void FIFO(char [],char [],int,int);
 void lru(char [],char [],int,int);
 void opt(char [],char [],int,int);
