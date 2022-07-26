@@ -1,238 +1,186 @@
 #include<stdio.h>
-#include<stdlib.h>
-void FIFO(char [],char [],int,int);
-void lru(char [],char [],int,int);
-void opt(char [],char [],int,int);
 
-int main()
-{
-   int ch,YN=1,i,l,f;
-   char F[10],s[25];
-   clrscr();
-   //system(“clear”);
-   printf(“\n\n\tEnter the no of empty frames: “);
-   scanf(“%d”,&f);
-   printf(“\n\n\tEnter the length of the string: “);
-   scanf(“%d”,&l);
-   printf(“\n\n\tEnter the string: “);
-   scanf(“%s”,s);
-   for(i=0;i<f;i++)
-     F[i]=-1;
-      do
-    {
-     // system(“clear”);
-      printf(“\n\n\t***** MENU *****”);
-      printf(“\n\n\t1:FIFO\n\n\t2:LRU\n\n\t3:OPT\n\n\t4:EXIT”);
-      printf(“\n\n\tEnter your choice: “);
-      scanf(“%d”,&ch);
-      //system(“clear”);
-      switch(ch)
-       {
-      case 1:
-          for(i=0;i<f;i++)
-           {
-             F[i]=-1;
-           }
+// page replacement
 
-          FIFO(s,F,l,f);
-          break;
-      case 2:
-          for(i=0;i<f;i++)
-           {
-             F[i]=-1;
-           }
-          lru(s,F,l,f);
-          break;
-      case 3:
-          for(i=0;i<f;i++)
-           {
-             F[i]=-1;
-           }
-
-          opt(s,F,l,f);
-          break;
-      case 4:
-          exit(0);
-       }
-      printf(“\n\n\tDo u want to continue IF YES PRESS 1\n\n\tIF NO PRESS 0 : “);
-      scanf(“%d”,&YN);
-    }while(YN==1);return(0);
+// checks if the request leads to page fault
+int checkFault(int fsize, int need, int f[100]){
+    for(int i = 0; i < fsize; i++){
+        if(f[i] == -1){
+            f[i] = need;
+            return 2;
+        }
+        if(need == f[i])
+            return 0;
+    }
+    return 1;
 }
 
-//FIFO
-void FIFO(char s[],char F[],int l,int f)
-{
-   int i,j=0,k,flag=0,cnt=0;
-   printf(“\n\tPAGE\t    FRAMES\t  FAULTS”);
-   for(i=0;i<l;i++)
-    {
-       for(k=0;k<f;k++)
-    {
-      if(F[k]==s[i])
-        flag=1;
+
+
+void fifo(int n, int ref[100]){
+    int frameSize, frames[100];
+    printf("Enter the frame size: ");
+    scanf("%d", &frameSize);
+    for(int i = 0; i < frameSize; i++)
+        frames[i] = -1;
+
+    printf("\n\nFIFO Page Replacement:\n\n");
+    printf("\tPage\t\tFrames");
+
+    int outEnd=0, fault, noFaults=0;
+    for(int i = 0; i < n; i++){
+        fault = checkFault(frameSize, ref[i], frames);
+        if(fault == 1){
+            frames[outEnd] = ref[i];
+            outEnd = (outEnd+1)%frameSize;
+        }
+        
+        printf("\n\t%d\t\t", ref[i]);
+        for(int j=0; j<frameSize; j++){
+            if(frames[j] != -1)
+                printf("%d", frames[j]);
+            printf("\t");
+        }
+        if(fault) {
+            noFaults++;
+            printf("PF");
+        }
     }
-
-       if(flag==0)
-    {
-      printf(“\n\t%c\t”,s[i]);
-      F[j]=s[i];
-      j++;
-
-      for(k=0;k<f;k++)
-       {
-        printf(”   %c”,F[k]);
-       }
-      printf(“\tPage-fault%d”,cnt);
-      cnt++;
-    }
-
-       else
-    {
-      flag=0;
-      printf(“\n\t%c\t”,s[i]);
-      for(k=0;k<f;k++)
-       {
-        printf(”   %c”,F[k]);
-       }
-
-      printf(“\tNo page-fault”);
-    }
-       if(j==f)
-    j=0;
-    }
-
+    printf("\n\nNo of Page faults = %d\n", noFaults);
 }
 
-//LRU
-void lru(char s[],char F[],int l,int f)
-{
-   int i,j=0,k,m,flag=0,cnt=0,top=0;
-   printf(“\n\tPAGE\t    FRAMES\t  FAULTS”);
-   for(i=0;i<l;i++)
-    {
-       for(k=0;k<f;k++)
-    {
-      if(F[k]==s[i])
-       {
-        flag=1;
-         break;
-       }
+void lru(int n, int ref[100]){
+    int frameSize, frames[100], used[100];
+    printf("Enter the frame size: ");
+    scanf("%d", &frameSize);
+    for(int i = 0; i < frameSize; i++){
+        frames[i] = -1;
+        used[i] = -1;
     }
+    printf("\n\nLRU Page Replacement:\n\n");
+    printf("\tPage\t\tFrames");
 
-       printf(“\n\t%c\t”,s[i]);
-       if(j!=f && flag!=1)
-    {
-      F[top]=s[i];
-      j++;
+    int fault, noFaults=0;
+    for(int i = 0; i <n; i++){
+        fault = checkFault(frameSize, ref[i], frames);
 
-      if(j!=f)
-       top++;
-    }
-       else
-    {
-       if(flag!=1)
-        {
-          for(k=0;k<top;k++)
-           {
-        F[k]=F[k+1];
-           }
-
-           F[top]=s[i];
+        if(fault==1) {
+            for(int j = 0; j<frameSize; j++)
+                for(int k = i; k>=0; k--)
+                    if(frames[j]==ref[k]){
+                        used[j] = i-k;
+                        break;
+                    }
+            
+            int max = 0, lruind;
+            for(int j = 0; j < frameSize; j++){
+                if(used[j]>max){
+                    max = used[j];
+                    lruind = j;
+                }
+            }
+            frames[lruind] = ref[i];
         }
-       if(flag==1)
-        {
-           for(m=k;m<top;m++)
-           {
-        F[m]=F[m+1];
-           }
-
-           F[top]=s[i];
+        printf("\n\t%d\t\t", ref[i]);
+        for(int j=0; j<frameSize; j++){
+            if(frames[j] != -1)
+                printf("%d", frames[j]);
+            printf("\t");
+        }
+         if(fault) {
+            noFaults++;
+            printf("PF");
         }
     }
-       for(k=0;k<f;k++)
-    {
-     printf(”   %c”,F[k]);
-    }
-
-       if(flag==0)
-    {
-      printf(“\tPage-fault%d”,cnt);
-      cnt++;
-    }
-       else
-     printf(“\tNo page fault”);
-       flag=0;
-    }
-
+    
+    printf("\n\nNo of Page faults = %d\n", noFaults);
 }
 
-//optimal
-void opt(char s[],char F[],int l,int f)
-{
-   int i,j=0,k,m,flag=0,cnt=0,temp[10];
-
-   printf(“\n\tPAGE\t    FRAMES\t  FAULTS”);
-   for(i=0;i<10;i++)
-     temp[i]=0;
-
-   for(i=0;i<f;i++)
-     F[i]=-1;
-
-   for(i=0;i<l;i++)
-    {
-       for(k=0;k<f;k++)
-    {
-      if(F[k]==s[i])
-        flag=1;
+void opt(int n, int ref[100]){
+    int frameSize, frames[100], used[100];
+    printf("Enter the frame size: ");
+    scanf("%d", &frameSize);
+    for(int i = 0; i < frameSize; i++){
+        frames[i] = -1;
+        used[i] = -1;
     }
+    printf("\n\nOPT Page Replacement:\n\n");
+    printf("\tPage\t\tFrames");
 
-       if(j!=f && flag==0)
-    {
-      F[j]=s[i];
-      j++;
-    }
+    int fault, noFaults=0;
+    for(int i = 0; i <n; i++){
+        fault = checkFault(frameSize, ref[i], frames);
 
-       else if(flag==0)
-    {
-       for(m=0;m<f;m++)
-        {
-          for(k=i+1;k<l;k++)
-           {
-          if(F[m]!=s[k])
-           {
-             temp[m]=temp[m]+1;
-           }
-          else
-           break;
-           }
+        if(fault==1) {
+            for(int j = 0; j<frameSize; j++)
+                for(int k = i; k<n; k++){
+                    used[j] = 100;
+                    if(frames[j]==ref[k]){
+                        used[j] = k-i;
+                        break;
+                    }
+                }
+            
+            int max = 0, optind;
+            for(int j = 0; j < frameSize; j++){
+                if(used[j]>max){
+                    max = used[j];
+                    optind = j;
+                }
+            }
+            frames[optind] = ref[i];
         }
-       m=0;
-       for(k=0;k<f;k++)
-        {
-           if(temp[k]>temp[m])
-        {
-          m=k;
+        printf("\n\t%d\t\t", ref[i]);
+        for(int j=0; j<frameSize; j++){
+            if(frames[j] != -1)
+                printf("%d", frames[j]);
+            printf("\t");
         }
+         if(fault) {
+            noFaults++;
+            printf("PF");
         }
-
-       F[m]=s[i];
     }
+    
+    printf("\n\nNo of Page faults = %d\n", noFaults);
+}
 
-       printf(“\n\t%c\t”,s[i]);
-       for(k=0;k<f;k++)
-    {
-       printf(”  %c”,F[k]);
-    }
-       if(flag==0)
-    {
-      printf(“\tPage-fault %d”,cnt);
-      cnt++;
-    }
-       else
-     printf(“\tNo Page-fault”);
-       flag=0;
 
-       for(k=0;k<10;k++)
-     temp[k]=0;
-     }
+void main(){
+    int n, refStr[100], temp[100];
+    printf("Input the number of terms in reference string: ");
+    scanf("%d",&n);
+    printf("Input the reference string: ");
+    for(int i=0; i<n; i++){
+        scanf("%d",&refStr[i]);
+    }
+    int choice;
+    do{
+        for(int i=0; i<n; i++){
+            temp[i] = refStr[i];
+        }
+        printf("\n\n\n\t\tMENU");
+        printf("\n1. FIFO");
+        printf("\n2. OPT");
+        printf("\n3. LRU");
+        printf("\n4. Exit");
+        printf("\n\nEnter your choice: ");
+        scanf("%d",&choice);
+        
+        switch(choice){
+            case 1: fifo(n, temp);
+                    break;
+            
+            case 2: opt(n, temp);
+                    break;
+            
+            case 3: lru(n, temp);
+                    break;
+
+            case 4: printf("\nExiting...\n\n");
+                    break;
+
+            default: printf("\n\nEnter a valid choice..\n\n");
+        }
+    } while(choice !=4);
 }
